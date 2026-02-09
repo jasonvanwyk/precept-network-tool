@@ -1,0 +1,53 @@
+SITE ANALYSIS - MANUAL RUN
+==========================
+
+Full site analysis:
+  sudo bash ~/site-analysis-tools/site-analysis.sh <site-name>
+
+WiFi dead spot survey (walk around and mark locations):
+  bash ~/site-analysis-tools/wifi-survey.sh <site-name>
+
+  Controls:
+    m = Mark location
+    n = Quick note
+    s = Stats snapshot
+    q = Quit — full summary + channel analysis + recommendations
+
+  Marking a location:
+    1. Auto-captures signal stability, noise, SSIDs, retries
+    2. Prompts — most are single keypress (no Enter needed):
+       - Location name     (type + Enter)
+       - Floor level       (press 1-7 instantly)
+       - Room type         (press 1-9 instantly)
+       - Indoor/outdoor    (press 1 or 2 instantly)
+       - Distance          (type metres + Enter)
+       - Walls             (press 1-6 instantly)
+       - Wall material     (press 1-6 instantly)
+       - Glass doors       (press 1-4 instantly)
+       - Interference      (toggle 1-7 on/off, Enter when done)
+       - Notes             (type + Enter, or just Enter to skip)
+    3. Shows summary — press c to save, 1-9/0 to edit a field, x to cancel
+    4. Auto-runs gateway ping, internet ping, DNS, HTTP TTFB tests
+
+    Press 0 at any menu for custom input. Press b to go back.
+
+  Background (automatic):
+    - Signal/noise/bitrate/retries logged every 2s
+    - Gateway ping logged every 1s
+    - AP roaming detection
+
+  Output files (in ~/site-analysis-tools/surveys/):
+    *_survey_*.csv      per-location data + test results
+    *_ssids_*.csv       all SSIDs at each location
+    *_timeseries_*.csv  continuous signal samples (2s)
+    *_ping_*.csv        continuous gateway pings (1s)
+    *_survey_*.log      human-readable log
+
+Reports saved to: ~/site-analysis-tools/reports/
+Surveys saved to: ~/site-analysis-tools/surveys/
+Both prompt to send to dev server when done.
+
+Also available:
+  wavemon                - real-time signal TUI
+  linssid                - graphical WiFi scanner with channel graphs
+  sudo horst -i wlan0   - raw WiFi monitor
