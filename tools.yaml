@@ -1,0 +1,202 @@
+# Site Analysis Tools — Installed Toolkit
+# Last updated: 2026-02-13
+
+base_toolkit:
+  description: Core site analysis and WiFi survey tools
+  install: >
+    sudo pacman -S nmap traceroute mtr bind arp-scan tcpdump wireshark-qt
+    iperf3 wavemon networkmanager openbsd-netcat ethtool whois net-tools
+    horst speedtest-cli linssid
+  packages:
+    - name: nmap
+      use: port scanning, service detection, vulnerability scripts (NSE)
+    - name: traceroute
+      use: hop-by-hop path tracing
+    - name: mtr
+      use: combined ping + traceroute with packet loss per hop
+    - name: bind
+      provides: dig
+      use: DNS lookups and record queries
+    - name: arp-scan
+      use: ARP-based LAN device discovery
+    - name: tcpdump
+      use: command-line packet capture
+    - name: wireshark-qt
+      provides: [wireshark, tshark, dumpcap]
+      use: GUI and CLI packet analysis (2000+ protocol dissectors)
+    - name: iperf3
+      use: bandwidth/throughput testing between two endpoints
+    - name: wavemon
+      use: ncurses real-time WiFi signal monitor with graph
+    - name: networkmanager
+      provides: [nmcli, nmtui]
+      use: network connection management (note — system uses iwd instead)
+    - name: openbsd-netcat
+      provides: nc
+      use: TCP/UDP port testing and connectivity checks
+    - name: ethtool
+      use: NIC stats, link speed/duplex, cable testing (TDR)
+    - name: whois
+      use: IP/domain ownership and ISP lookup
+    - name: net-tools
+      provides: [ifconfig, netstat, route]
+      use: legacy network tools (ifconfig, netstat, route)
+    - name: horst
+      use: raw 802.11 WiFi frame monitor
+    - name: speedtest-cli
+      use: internet speed test (download/upload/ping)
+    - name: linssid
+      use: GUI WiFi scanner with signal and channel graphs
+    - name: openssh
+      provides: [ssh, scp, sftp]
+      use: secure remote shell, file transfer
+
+extended_toolkit:
+  description: Kali-inspired networking, discovery, monitoring, and Windows access tools
+  install_pacman: >
+    sudo pacman -S impacket freerdp masscan nbtscan lldpd fping kismet
+    aircrack-ng mdk4 ngrep iptraf-ng iftop nethogs nload bmon hping arpwatch
+  install_aur: >
+    yay -S netdiscover dhcpdump onesixtyone
+  packages:
+
+    # Windows Remote Access
+    - name: impacket
+      category: windows
+      provides: [impacket-psexec, impacket-smbexec, impacket-wmiexec, impacket-atexec]
+      use: remote shell on Windows via SMB/WMI — zero setup on Windows side
+      when: need CLI access to a client Windows machine, just need admin creds + port 445
+    - name: freerdp
+      category: windows
+      provides: xfreerdp
+      use: RDP client for GUI access to Windows desktops
+      when: need to see the Windows screen — Device Manager, Event Viewer, etc.
+
+    # Network Discovery
+    - name: lldpd
+      category: discovery
+      provides: [lldpd, lldpcli]
+      use: LLDP/CDP — identify switch, port, and VLAN from a wall jack
+      when: plug into unknown wall jack, need to trace what switch/port it connects to
+    - name: fping
+      category: discovery
+      use: parallel ping sweep — find all live hosts on a subnet fast
+      when: "quick 'what's alive' check on a /24"
+    - name: masscan
+      category: discovery
+      use: async port scanner — scan large subnets for specific ports very fast
+      when: rapid service inventory on /16+ networks, faster than nmap for large scans
+    - name: nbtscan
+      category: discovery
+      use: NetBIOS scanner — find Windows machines, hostnames, workgroups
+      when: need to map all Windows machines on the LAN
+    - name: netdiscover
+      category: discovery
+      repo: aur
+      use: ARP discovery with passive mode — silently observe network without generating traffic
+      when: want to map hosts without triggering IDS/IPS
+
+    # WiFi Analysis
+    - name: kismet
+      category: wifi
+      use: comprehensive wireless detector/sniffer with web UI — all APs, hidden SSIDs, rogue APs, all clients
+      when: full wireless environment assessment, rogue AP detection
+    - name: aircrack-ng
+      category: wifi
+      provides: [airmon-ng, airodump-ng, aireplay-ng, aircrack-ng]
+      use: WiFi suite — monitor mode, AP/client listing, encryption type, signal, data rates
+      when: see all APs and which clients are connected where
+    - name: mdk4
+      category: wifi
+      use: 802.11 protocol testing — verify WIDS/WIPS, detect beacon floods
+      when: test client wireless IDS systems, identify channel congestion
+
+    # Traffic Analysis
+    - name: iftop
+      category: traffic
+      use: real-time bandwidth by connection — see which connections use most bandwidth
+      when: "diagnosing 'the internet is slow' — instantly see what's consuming bandwidth"
+    - name: nethogs
+      category: traffic
+      use: bandwidth by process — which application is eating bandwidth
+      when: client machine is slow, find which process is the bandwidth hog
+    - name: iptraf-ng
+      category: traffic
+      use: ncurses traffic dashboard — TCP/UDP connections, protocol breakdown, interface stats
+      when: need a full overview of all network activity on an interface
+    - name: ngrep
+      category: traffic
+      use: regex pattern matching on live network traffic (network grep)
+      when: searching for specific DNS queries, HTTP requests, or strings in traffic
+    - name: nload
+      category: traffic
+      use: console bandwidth monitor with ASCII graphs
+      when: quick visual of link utilization while running tests
+    - name: bmon
+      category: traffic
+      use: multi-interface bandwidth monitor with bar graphs
+      when: need to see traffic on multiple interfaces simultaneously
+
+    # Protocol Analysis
+    - name: arpwatch
+      category: protocol
+      use: passive ARP monitor — detects new hosts, IP conflicts, MAC flip-flops, ARP spoofing
+      when: suspect IP conflicts, ARP spoofing, or rogue DHCP on client network
+    - name: dhcpdump
+      category: protocol
+      repo: aur
+      use: human-readable DHCP packet dump — see exactly what DHCP server hands out
+      when: DHCP troubleshooting — wrong IPs, wrong DNS, wrong gateway, no lease
+    - name: hping
+      category: protocol
+      provides: hping3
+      use: custom TCP/UDP/ICMP packet crafter — test firewall rules, MTU discovery
+      when: need to test specific firewall rules or diagnose MTU/fragmentation issues
+
+    # SNMP
+    - name: net-snmp
+      category: snmp
+      provides: [snmpwalk, snmpget, snmpbulkwalk]
+      use: query managed switches/routers/APs for port status, VLANs, MAC tables, errors
+      when: diagnosing managed network infrastructure
+    - name: onesixtyone-git
+      category: snmp
+      repo: aur
+      provides: onesixtyone
+      use: fast SNMP scanner — discover SNMP devices and test for default community strings
+      when: find all SNMP-enabled devices on a subnet
+
+  not_installed:
+    - name: evil-winrm-py
+      category: windows
+      reason: AUR build failed — install via pipx instead
+      alt_install: "pipx install evil-winrm-py"
+      use: WinRM shell — full PowerShell session on Windows with file transfer
+      when: WinRM is enabled (common on domain-joined business machines)
+    - name: enum4linux
+      category: windows
+      reason: AUR package stale (last updated 2021)
+      alt_install: "yay -S enum4linux-ng"
+      use: SMB/NetBIOS enumerator — users, groups, shares, OS info, password policies
+      when: auditing Windows/Samba machines for misconfigurations
+    - name: yersinia
+      category: protocol
+      reason: orphaned AUR package, build failed
+      alternative: use tshark for Layer 2 protocol analysis
+      use: Layer 2 protocol analyzer — STP, CDP, DTP, DHCP, VLAN
+    - name: sparrow-wifi-git
+      category: wifi
+      reason: complex Qt/Python deps, build failed
+      alternative: kismet + linssid + airodump-ng cover the same ground
+      use: GUI WiFi analyzer with signal graphs and GPS heatmaps
+
+wifi_system:
+  daemon: iwd
+  interface: wlan0
+  saved_passwords: /var/lib/iwd/*.psk
+  note: system uses iwd, NOT NetworkManager for WiFi
+
+dev_server:
+  host: 10.0.10.21
+  user: jason
+  reports_path: ~/site-reports/

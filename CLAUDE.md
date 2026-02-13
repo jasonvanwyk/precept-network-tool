@@ -42,13 +42,32 @@ At the end, the script offers to SCP the report to the dev server at
 
 ## Required Packages
 
+### Base Toolkit (all currently installed)
+
 ```bash
 sudo pacman -S nmap traceroute mtr bind arp-scan tcpdump wireshark-qt \
   iperf3 wavemon networkmanager openbsd-netcat ethtool whois net-tools \
   horst speedtest-cli linssid
 ```
 
-All packages are currently installed.
+### Extended Toolkit (Windows access, discovery, monitoring)
+
+```bash
+# Official repos (all installed)
+sudo pacman -S impacket freerdp masscan nbtscan lldpd fping kismet \
+  aircrack-ng mdk4 ngrep iptraf-ng iftop nethogs nload bmon hping arpwatch
+
+# AUR (installed)
+yay -S netdiscover dhcpdump onesixtyone
+
+# Failed to build from AUR — alternatives:
+#   evil-winrm-py  → pipx install evil-winrm-py
+#   enum4linux     → yay -S enum4linux-ng
+#   yersinia       → use tshark for L2 analysis
+#   sparrow-wifi   → use kismet + linssid + airodump-ng
+```
+
+### Full tool inventory with descriptions: [tools.yaml](tools.yaml)
 
 ## Dev Server
 
@@ -115,6 +134,83 @@ Analysis on quit:
 
 Signal thresholds: excellent (>-30), good (>-50), fair (>-60), weak (>-70), dead spot (<-70)
 
+## Windows Remote Access
+
+See [docs/windows-remote-access.md](docs/windows-remote-access.md) for full details.
+
+Quick workflow: use `impacket-psexec` for instant CLI access (no Windows setup
+needed), then enable OpenSSH server for persistent SSH access, then RDP via
+`xfreerdp` if GUI is needed.
+
+```bash
+# Instant remote shell (just need admin creds + port 445)
+impacket-psexec 'WORKGROUP/Administrator:password@<ip>'
+
+# SSH after enabling OpenSSH on Windows
+ssh user@<ip>
+
+# RDP for GUI access
+xfreerdp /v:<ip> /u:user /p:password /dynamic-resolution
+```
+
+## Windows Password & PIN Reset
+
+See [docs/windows-password-reset.md](docs/windows-password-reset.md) for all methods.
+
+Quick options:
+- **Microsoft account** → "I forgot my PIN" on lock screen, or `account.live.com`
+- **Local account** → `chntpw` from Linux to blank password, or utilman.exe trick
+- **Domain machine** → domain admin resets via AD
+
+## Router Access
+
+See [docs/router-access.md](docs/router-access.md) for the full guide — default
+credentials by brand, alternative access methods (SSH, SNMP, non-standard ports),
+and what to check once logged in.
+
+```bash
+# Find gateway
+ip route | grep default
+
+# Identify make/model
+nmap -sV -p 80,443,8080,8443 <gateway-ip>
+
+# SNMP query (often works without web login)
+snmpwalk -v2c -c public <gateway-ip> 1.3.6.1.2.1.1
+```
+
+## Email Troubleshooting
+
+See [docs/email-troubleshooting.md](docs/email-troubleshooting.md) for the full
+guide — password recovery, mail delivery diagnosis, DNS record checks, and
+common provider settings.
+
+```bash
+# Test mail server connectivity
+nc -zv mail.example.com 587 && nc -zv mail.example.com 993
+
+# Check MX + SPF + DMARC
+dig MX example.com
+dig TXT example.com
+dig TXT _dmarc.example.com
+
+# SMTP handshake test
+openssl s_client -connect mail.example.com:587 -starttls smtp
+```
+
+## Additional Network Tools
+
+See [docs/network-tools.md](docs/network-tools.md) for the full reference.
+
+Key additions from Kali Linux and the broader Linux ecosystem:
+- **lldpd** — identify switch/port/VLAN from a wall jack
+- **iftop / nethogs** — real-time bandwidth monitoring by connection or process
+- **kismet / aircrack-ng** — advanced WiFi analysis and client tracking
+- **fping / masscan / nbtscan** — fast network discovery and scanning
+- **arpwatch** — passive ARP anomaly detection (IP conflicts, spoofing)
+- **net-snmp** — query managed switches/routers/APs via SNMP
+- **hping3** — custom packet crafting for firewall testing
+
 ## Other WiFi Tools
 
 - `wavemon` — ncurses real-time signal monitor with graph
@@ -123,6 +219,7 @@ Signal thresholds: excellent (>-30), good (>-50), fair (>-60), weak (>-70), dead
 
 ## Tips for Claude
 
+### Site Analysis & Surveys
 - When asked to run a site analysis, execute: `sudo bash ~/site-analysis-tools/site-analysis.sh <site-name>`
 - When asked to do a WiFi survey, the user must run it interactively: `bash ~/site-analysis-tools/wifi-survey.sh <site-name>`
 - After the report is generated, read the report file and summarize key findings
@@ -130,3 +227,80 @@ Signal thresholds: excellent (>-30), good (>-50), fair (>-60), weak (>-70), dead
 - Compare results across multiple site visits if previous reports exist in the reports dir
 - Survey CSV files can be parsed to identify dead spots and recommend AP placement
 - The report is plain text and can be parsed section by section
+
+### When to Use Which Tool
+
+**"I need a shell on a Windows machine"**
+→ `impacket-psexec 'WORKGROUP/user:pass@<ip>'` (nothing needed on Windows side)
+→ Then enable OpenSSH for persistent access, or `xfreerdp` for GUI
+
+**"What switch/port/VLAN is this wall jack?"**
+→ `sudo systemctl start lldpd && sleep 30 && lldpcli show neighbors`
+
+**"The internet is slow"**
+→ `sudo iftop -i <iface>` (bandwidth by connection)
+→ `sudo nethogs <iface>` (bandwidth by process)
+→ `speedtest-cli` (raw speed test)
+→ `mtr 8.8.8.8` (latency + packet loss per hop)
+
+**"What devices are on this network?"**
+→ `fping -asg <subnet>/24` (fast alive sweep)
+→ `sudo arp-scan -l` (ARP-based discovery)
+→ `nbtscan <subnet>/24` (Windows machines specifically)
+→ `sudo nmap -sn <subnet>/24` (comprehensive ping sweep)
+
+**"WiFi problems / dead spots"**
+→ `bash wifi-survey.sh <site>` (interactive walk-around survey)
+→ `wavemon` (real-time signal monitor)
+→ `sudo kismet -c wlan0` (full wireless environment — all APs, all clients, hidden SSIDs)
+→ `sudo airmon-ng start wlan0 && sudo airodump-ng wlan0mon` (all APs + clients, who's connected where)
+
+**"Is there something wrong at Layer 2?"**
+→ `sudo arpwatch -i <iface>` (ARP anomalies, IP conflicts, spoofing)
+→ `sudo yersinia -I` (STP, CDP, DTP, VLAN issues)
+→ `sudo dhcpdump -i <iface>` (watch DHCP transactions)
+
+**"What's this managed switch/router/AP doing?"**
+→ `snmpwalk -v2c -c public <ip> 1.3.6.1.2.1.1` (system info)
+→ `snmpwalk -v2c -c public <ip> 1.3.6.1.2.1.2.2.1` (interface/port table)
+
+**"Is this port/firewall blocking traffic?"**
+→ `sudo hping3 -S -p <port> -c 3 <ip>` (test specific TCP port)
+→ `nmap --script ssl-enum-ciphers -p 443 <ip>` (audit TLS)
+→ `nmap --script vuln <ip>` (vulnerability scan)
+
+**"I need to search live traffic for something"**
+→ `sudo ngrep -d <iface> '<pattern>' port <port>` (grep network traffic)
+→ `sudo iptraf-ng` (full traffic dashboard)
+→ `sudo tshark -i <iface> -f '<capture filter>'` (CLI wireshark)
+
+**"Is this ethernet cable/port OK?"**
+→ `sudo ethtool --cable-test <iface>` (TDR cable test)
+→ `ethtool -S <iface>` (NIC error counters — CRC errors = bad cable)
+→ `ethtool <iface>` (link speed, duplex, autoneg)
+
+**"Enumerate a Windows/SMB machine"**
+→ `enum4linux -a <ip>` (users, groups, shares, policies)
+→ `nbtscan <ip>` (NetBIOS info)
+→ `nmap --script smb-vuln* -p 445 <ip>` (SMB vulnerabilities)
+
+**"Client forgot their email password"**
+→ Check browser saved passwords on their Windows machine (Chrome/Edge/Firefox)
+→ `cmdkey /list` in Windows for Credential Manager entries
+→ NirSoft Mail PassView on USB stick for Outlook/Thunderbird
+→ Or just reset via provider portal / hosting panel
+
+**"Email isn't working"**
+→ `nc -zv mail.server 587` (is SMTP reachable?)
+→ `nc -zv mail.server 993` (is IMAP reachable?)
+→ `dig MX domain.com` (correct MX records?)
+→ `dig TXT domain.com` (SPF record exists?)
+→ `openssl s_client -connect mail.server:587 -starttls smtp` (TLS working?)
+
+### Documentation
+- Full Windows remote access guide: `docs/windows-remote-access.md`
+- Full network tools reference: `docs/network-tools.md`
+- Router access & default credentials: `docs/router-access.md`
+- Email troubleshooting & password recovery: `docs/email-troubleshooting.md`
+- Windows password & PIN reset: `docs/windows-password-reset.md`
+- Full tool inventory with descriptions: `tools.yaml`
